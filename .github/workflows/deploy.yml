@@ -29,14 +29,13 @@ jobs:
           HOST: 134.122.55.129
           DEPLOY_PATH: /var/www/html
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $USER@$HOST "
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $USER@$HOST << 'EOF'
             cd $DEPLOY_PATH
             git pull origin main
             # Set permissions for security
-            chown -R www-data:www-data .
+            sudo chown -R www-data:www-data .
             find . -type d -exec chmod 755 {} \;
             find . -type f -exec chmod 644 {} \;
             # Restart the web server (replace apache2 with nginx if using Nginx)
             sudo systemctl restart apache2
           EOF
-
