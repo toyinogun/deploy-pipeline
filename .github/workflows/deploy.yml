@@ -3,7 +3,7 @@ name: Deploy WordPress
 on:
   push:
     branches:
-      - main #test
+      - main
 
 jobs:
   deploy:
@@ -30,17 +30,27 @@ jobs:
           DEPLOY_PATH: /var/www/html
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $USER@$HOST << 'EOF'
+            # Navigate to deployment path
             cd $DEPLOY_PATH
-            # Initialize the repository if not already done
+
+            # Initialize repository if not already done
             if [ ! -d ".git" ]; then
               git init
               git remote add origin https://github.com/toyinogun/deploy-pipeline.git
             fi
             git pull origin main
-            # Set permissions for security
+
+            # Apply permissions only to WordPress files
+            sudo find . -type d -exec chmod 755 {} \;
+            sudo find . -type f -exec chmod 644 {} \;
+
+            # Ensure Nginx has access to files
             sudo chown -R www-data:www-data .
-            find . -type d -exec chmod 755 {} \;
-            find . -type f -exec chmod 644 {} \;
-            # Restart the web server
-            sudo systemctl restart apache2
+
+            # Restart Nginx server
+            if systemctl list-units --type=service | grep -q nginx; then
+              sudo systemctl restart nginx
+            else
+              echo "Nginx not found; skipping web server restart."
+            fi
           EOF
