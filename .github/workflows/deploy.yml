@@ -21,36 +21,17 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -t rsa github.com > ~/.ssh/known_hosts
-          ssh-keyscan -t rsa 134.122.55.129 >> ~/.ssh/known_hosts
+          ssh-keyscan -t rsa 134.122.49.114 >> ~/.ssh/known_hosts
 
       - name: Deploy to server
         env:
           USER: toyin
-          HOST: 134.122.55.129
+          HOST: 134.122.49.114
           DEPLOY_PATH: /var/www/html
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $USER@$HOST << 'EOF'
-            # Navigate to deployment path
             cd $DEPLOY_PATH
-
-            # Initialize repository if not already done
-            if [ ! -d ".git" ]; then
-              git init
-              git remote add origin https://github.com/toyinogun/deploy-pipeline.git
-            fi
             git pull origin main
-
-            # Apply permissions only to WordPress files
-            sudo find . -type d -exec chmod 755 {} \;
-            sudo find . -type f -exec chmod 644 {} \;
-
-            # Ensure Nginx has access to files
             sudo chown -R www-data:www-data .
-
-            # Restart Nginx server
-            if systemctl list-units --type=service | grep -q nginx; then
-              sudo systemctl restart nginx
-            else
-              echo "Nginx not found; skipping web server restart."
-            fi
+            sudo systemctl restart nginx
           EOF
