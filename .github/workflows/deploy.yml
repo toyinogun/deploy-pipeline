@@ -3,7 +3,7 @@ name: Deploy WordPress
 on:
   push:
     branches:
-      - main #test
+      - main
 
 jobs:
   deploy:
@@ -15,27 +15,32 @@ jobs:
 
       - name: Set up SSH for deployment
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SECRET }}
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-          ssh-keyscan -t rsa 134.122.55.129 >> ~/.ssh/known_hosts
+          ssh-keyscan -t rsa github.com > ~/.ssh/known_hosts
+          ssh-keyscan -t rsa your_server_ip >> ~/.ssh/known_hosts
 
       - name: Deploy to server
         env:
           USER: toyin
-          HOST: 134.122.55.129
+          HOST: your_server_ip
           DEPLOY_PATH: /var/www/html
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $USER@$HOST << 'EOF'
             cd $DEPLOY_PATH
+            # Initialize repository if not already done
+            if [ ! -d ".git" ]; then
+              git init
+              git remote add origin <your-repo-url>
+            fi
             git pull origin main
-            # Set permissions for security
+            # Set permissions
             sudo chown -R www-data:www-data .
             find . -type d -exec chmod 755 {} \;
             find . -type f -exec chmod 644 {} \;
-            # Restart the web server (replace apache2 with nginx if using Nginx)
+            # Restart the web server
             sudo systemctl restart apache2
           EOF
